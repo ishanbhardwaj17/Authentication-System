@@ -441,3 +441,69 @@ export async function verifyEmail(req, res) {
         });
     }
 }
+
+
+/*
+RESEND OTP
+*/
+export async function resendOtp(req, res) {
+
+    try {
+
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                message: "Email is required"
+            });
+        }
+
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        if (user.verified) {
+            return res.status(400).json({
+                message: "Email already verified"
+            });
+        }
+
+        /* DELETE OLD OTP */
+        await otpModel.deleteMany({ email });
+
+        /* GENERATE NEW OTP */
+        const otp = generateOtp();
+        const html = getOtpHtml(otp);
+
+        const otpHash = await bcrypt.hash(otp, 10);
+
+        await otpModel.create({
+            email,
+            user: user._id,
+            otpHash
+        });
+
+        await sendEmail(
+            email,
+            "OTP Verification",
+            `Your OTP code is ${otp}`,
+            html
+        );
+
+        res.status(200).json({
+            message: "OTP resent successfully"
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Failed to resend OTP"
+        });
+    }
+}

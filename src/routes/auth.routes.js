@@ -6,7 +6,7 @@ const authRouter = Router();
 /**
  * POST api/auth/register
  */
-authRouter.post('/register',authController.register);
+authRouter.post('/register', authController.register);
 
 /**
  * GET /api/auth/get-me
@@ -29,8 +29,13 @@ authRouter.post("/logout", authController.logout)
 authRouter.post("/login", authController.login)
 
 /**
- * GET /api/auth/verify-email
+ * POST /api/auth/verify-email
  */
 authRouter.post("/verify-email", authController.verifyEmail)
+
+/**
+ * POST /api/auth/verify-email
+ */
+authRouter.post("/resend-otp", authController.resendOtp);
 
 export default authRouter
