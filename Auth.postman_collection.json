@@ -1,0 +1,224 @@
+{
+  "info": {
+    "_postman_id": "e20aad0e-7793-40fb-97c1-9b87461c7640",
+    "name": "Auth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46473883",
+    "_collection_link": "https://go.postman.co/collection/46473883-e20aad0e-7793-40fb-97c1-9b87461c7640?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "REGISTER",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"username\": \"ishan\",\r\n    \"email\": \"ishanbhardwaj1177@gmail.com\",\r\n    \"password\": \"ishan123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/auth/register",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "VERIFY EMAIL",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"ishanbhardwaj1177@gmail.com\",\r\n  \"otp\": \"997320\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/auth/verify-email",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "verify-email"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "LOGIN",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"ishanbhardwaj1177@gmail.com\",\r\n  \"password\": \"ishan123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET-ME",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjgwOWFlNzk5ZDVhY2RjMTliMGFlOSIsImlhdCI6MTc3MzY2ODgyMCwiZXhwIjoxNzczNjY5NDIwfQ.qVNXNi2ynsGtD0GIUw4JvoeBEmoWkt1K3k6Dhuy-440",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/auth/get-me",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "get-me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "REFRESH TOKEN",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjgwOWFlNzk5ZDVhY2RjMTliMGFlOSIsImlhdCI6MTc3MzY2ODgyMCwiZXhwIjoxNzczNjY5NDIwfQ.qVNXNi2ynsGtD0GIUw4JvoeBEmoWkt1K3k6Dhuy-440",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/auth/refresh-token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "refresh-token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "LOGOUT",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjgwOWFlNzk5ZDVhY2RjMTliMGFlOSIsImlhdCI6MTc3MzY2ODgyMCwiZXhwIjoxNzczNjY5NDIwfQ.qVNXNi2ynsGtD0GIUw4JvoeBEmoWkt1K3k6Dhuy-440",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "RESEND OTP",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"ishanbhardwaj1177@gmail.com\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/auth/resend-otp",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "resend-otp"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
