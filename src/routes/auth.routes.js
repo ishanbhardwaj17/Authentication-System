@@ -28,4 +28,9 @@ authRouter.post("/logout", authController.logout)
  */
 authRouter.post("/login", authController.login)
 
+/**
+ * GET /api/auth/verify-email
+ */
+authRouter.post("/verify-email", authController.verifyEmail)
+
 export default authRouter

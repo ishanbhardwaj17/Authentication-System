@@ -1,16 +1,22 @@
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
 import userModel from "../models/user.model.js";
 import sessionModel from "../models/session.model.js";
+import otpModel from "../models/otp.model.js";
+
 import config from "../config/config.js";
 import redis from "../config/cache.js";
 
+import { sendEmail } from "../services/email.service.js";
+import { generateOtp, getOtpHtml } from "../utils/utils.js";
+
 
 /*
-   REGISTER
+REGISTER
 */
 export async function register(req, res) {
+
     try {
 
         const { username, email, password } = req.body;
@@ -39,55 +45,41 @@ export async function register(req, res) {
             password: hashedPassword
         });
 
-        /* ACCESS TOKEN */
-        const accessToken = jwt.sign(
-            { id: user._id },
-            config.JWT_SECRET,
-            { expiresIn: "10m" }
-        );
+        /* DELETE OLD OTP */
+        await otpModel.deleteMany({ email });
 
-        /* REFRESH TOKEN */
-        const refreshToken = jwt.sign(
-            { id: user._id },
-            config.JWT_SECRET,
-            { expiresIn: config.JWT_EXPIRES_IN }
-        );
+        /* GENERATE OTP */
+        const otp = generateOtp();
+        const html = getOtpHtml(otp);
 
-        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+        const otpHash = await bcrypt.hash(otp, 10);
 
-        const session = await sessionModel.create({
+        await otpModel.create({
+            email,
             user: user._id,
-            refreshTokenHash: hashedRefreshToken,
-            ip: req.ip,
-            userAgent: req.headers["user-agent"]
+            otpHash
         });
 
-        /* CACHE SESSION IN REDIS */
-        await redis.set(
-            `session:${user._id}`,
-            JSON.stringify(session),
-            "EX",
-            7 * 24 * 60 * 60
+        await sendEmail(
+            email,
+            "OTP Verification",
+            `Your OTP code is ${otp}`,
+            html
         );
-
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
 
         res.status(201).json({
-            message: "User registered successfully",
+            message: "User registered successfully. Verify your email.",
             user: {
                 username: user.username,
-                email: user.email
-            },
-            accessToken
+                email: user.email,
+                verified: user.verified
+            }
         });
 
     } catch (error) {
+
         console.error(error);
+
         res.status(500).json({
             message: "Internal server error"
         });
@@ -96,9 +88,10 @@ export async function register(req, res) {
 
 
 /*
-   LOGIN
+LOGIN
 */
 export async function login(req, res) {
+
     try {
 
         const { email, password } = req.body;
@@ -109,7 +102,6 @@ export async function login(req, res) {
             });
         }
 
-        /* FIND USER */
         const user = await userModel.findOne({ email });
 
         if (!user) {
@@ -118,7 +110,13 @@ export async function login(req, res) {
             });
         }
 
-        /* VERIFY PASSWORD */
+        /* BLOCK UNVERIFIED USERS */
+        if (!user.verified) {
+            return res.status(403).json({
+                message: "Please verify your email first"
+            });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
@@ -127,24 +125,20 @@ export async function login(req, res) {
             });
         }
 
-        /* GENERATE ACCESS TOKEN */
         const accessToken = jwt.sign(
             { id: user._id },
             config.JWT_SECRET,
             { expiresIn: "10m" }
         );
 
-        /* GENERATE REFRESH TOKEN */
         const refreshToken = jwt.sign(
             { id: user._id },
             config.JWT_SECRET,
             { expiresIn: config.JWT_EXPIRES_IN }
         );
 
-        /* HASH REFRESH TOKEN */
         const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-        /* CREATE SESSION */
         const session = await sessionModel.create({
             user: user._id,
             refreshTokenHash: hashedRefreshToken,
@@ -160,7 +154,6 @@ export async function login(req, res) {
             7 * 24 * 60 * 60
         );
 
-        /* SEND REFRESH TOKEN COOKIE */
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: true,
@@ -168,7 +161,6 @@ export async function login(req, res) {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        /* RESPONSE */
         res.status(200).json({
             message: "Login successful",
             user: {
@@ -189,8 +181,8 @@ export async function login(req, res) {
 }
 
 
-/* 
-   GET CURRENT USER
+/*
+GET CURRENT USER
 */
 export async function getMe(req, res) {
 
@@ -204,7 +196,6 @@ export async function getMe(req, res) {
             });
         }
 
-        /* CHECK REDIS BLACKLIST */
         const isBlackListed = await redis.get(`blacklist:${token}`);
 
         if (isBlackListed) {
@@ -235,15 +226,15 @@ export async function getMe(req, res) {
 
         console.error(error);
 
-        return res.status(401).json({
+        res.status(401).json({
             message: "Invalid token"
         });
     }
 }
 
 
-/* 
-   REFRESH TOKEN
+/*
+REFRESH TOKEN
 */
 export async function refreshToken(req, res) {
 
@@ -285,7 +276,6 @@ export async function refreshToken(req, res) {
             );
         }
 
-        /* VERIFY REFRESH TOKEN HASH */
         const isValid = await bcrypt.compare(
             refreshToken,
             session.refreshTokenHash
@@ -297,14 +287,12 @@ export async function refreshToken(req, res) {
             });
         }
 
-        /* CREATE NEW ACCESS TOKEN */
         const accessToken = jwt.sign(
             { id: decoded.id },
             config.JWT_SECRET,
             { expiresIn: "10m" }
         );
 
-        /* ROTATE REFRESH TOKEN */
         const newRefreshToken = jwt.sign(
             { id: decoded.id },
             config.JWT_SECRET,
@@ -318,7 +306,6 @@ export async function refreshToken(req, res) {
             { refreshTokenHash: newHashedToken }
         );
 
-        /* UPDATE REDIS SESSION */
         await redis.set(
             `session:${decoded.id}`,
             JSON.stringify({
@@ -345,15 +332,15 @@ export async function refreshToken(req, res) {
 
         console.error(error);
 
-        return res.status(401).json({
+        res.status(401).json({
             message: "Invalid or expired refresh token"
         });
     }
 }
 
 
-/* 
-   LOGOUT
+/*
+LOGOUT
 */
 export async function logout(req, res) {
 
@@ -371,7 +358,6 @@ export async function logout(req, res) {
 
         const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
 
-        /* BLACKLIST ACCESS TOKEN */
         await redis.set(
             `blacklist:${token}`,
             "true",
@@ -379,12 +365,10 @@ export async function logout(req, res) {
             expiresIn
         );
 
-        /* DELETE SESSION */
         await sessionModel.deleteMany({
             user: decoded.id
         });
 
-        /* DELETE REDIS SESSION CACHE */
         await redis.del(`session:${decoded.id}`);
 
         res.clearCookie("refreshToken");
@@ -403,3 +387,57 @@ export async function logout(req, res) {
     }
 }
 
+
+/*
+VERIFY EMAIL
+*/
+export async function verifyEmail(req, res) {
+
+    try {
+
+        const { otp, email } = req.body;
+
+        const otpDoc = await otpModel.findOne({ email });
+
+        if (!otpDoc) {
+            return res.status(400).json({
+                message: "Invalid OTP"
+            });
+        }
+
+        const isValid = await bcrypt.compare(otp, otpDoc.otpHash);
+
+        if (!isValid) {
+            return res.status(400).json({
+                message: "Invalid OTP"
+            });
+        }
+
+        const user = await userModel.findByIdAndUpdate(
+            otpDoc.user,
+            { verified: true },
+            { new: true }
+        );
+
+        await otpModel.deleteMany({
+            user: otpDoc.user
+        });
+
+        return res.status(200).json({
+            message: "Email verified successfully",
+            user: {
+                username: user.username,
+                email: user.email,
+                verified: user.verified
+            }
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Verification failed"
+        });
+    }
+}
