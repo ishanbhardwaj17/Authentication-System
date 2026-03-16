@@ -95,6 +95,100 @@ export async function register(req, res) {
 }
 
 
+/*
+   LOGIN
+*/
+export async function login(req, res) {
+    try {
+
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Email and password are required"
+            });
+        }
+
+        /* FIND USER */
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        /* VERIFY PASSWORD */
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        /* GENERATE ACCESS TOKEN */
+        const accessToken = jwt.sign(
+            { id: user._id },
+            config.JWT_SECRET,
+            { expiresIn: "10m" }
+        );
+
+        /* GENERATE REFRESH TOKEN */
+        const refreshToken = jwt.sign(
+            { id: user._id },
+            config.JWT_SECRET,
+            { expiresIn: config.JWT_EXPIRES_IN }
+        );
+
+        /* HASH REFRESH TOKEN */
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+        /* CREATE SESSION */
+        const session = await sessionModel.create({
+            user: user._id,
+            refreshTokenHash: hashedRefreshToken,
+            ip: req.ip,
+            userAgent: req.headers["user-agent"]
+        });
+
+        /* CACHE SESSION IN REDIS */
+        await redis.set(
+            `session:${user._id}`,
+            JSON.stringify(session),
+            "EX",
+            7 * 24 * 60 * 60
+        );
+
+        /* SEND REFRESH TOKEN COOKIE */
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        /* RESPONSE */
+        res.status(200).json({
+            message: "Login successful",
+            user: {
+                username: user.username,
+                email: user.email
+            },
+            accessToken
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+}
+
+
 /* 
    GET CURRENT USER
 */
@@ -308,3 +402,4 @@ export async function logout(req, res) {
         });
     }
 }
+
