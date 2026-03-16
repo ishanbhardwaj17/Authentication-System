@@ -349,7 +349,14 @@ Stores refresh token hashes and session metadata.
 
 # 🧪 Testing
 
-You can test the API using **Postman**.
+# 📬 Postman Collection
+
+You can import the Postman collection to test the API.
+
+Location:
+
+postman/auth-system-postman.json
+
 
 Recommended flow:
 
